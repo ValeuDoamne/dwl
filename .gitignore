@@ -1,0 +1,12 @@
+dwl
+*.o
+*-protocol.c
+*-protocol.h
+.ccls-cache
+config.h
+*.a
+.gitea
+.mailmap
+.gitignore.*
+.gdb_history
+.gitea
