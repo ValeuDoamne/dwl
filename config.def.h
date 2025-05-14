@@ -10,12 +10,12 @@ static const int smartgaps                 = 0;  /* 1 means no outer gap when th
 static int gaps                            = 1;  /* 1 means gaps between windows are added */
 static const unsigned int gappx            = 10; /* gap pixel between windows */
 static const unsigned int borderpx         = 1;  /* border pixel of windows */
-static const int showbar                   = 1;  /* 0 means no bar */
-static const int topbar                    = 1;  /* 0 means bottom bar */
-static const char *fonts[]                 = { "JetBrainsMono Nerd Font Mono:size=10", "monospace:size=10"};
+static const unsigned int systrayspacing   = 2; /* systray spacing */
+static const int showsystray               = 1; /* 0 means no systray */
+static const int showbar                   = 1; /* 0 means no bar */
+static const int topbar                    = 1; /* 0 means bottom bar */
+static const char *fonts[]                 = { "JetBrainsMono Nerd Font Mono:size=10", "monospace:size=10" };
 static const float rootcolor[]             = COLOR(0x00ffffff);
-static const int trayspacing               = 10; /* Spacing between icons in system tray */
-static const int traymargins               = 2; /* System tray inner margins */
 /* This conforms to the xdg-protocol. Set the alpha to zero to restore the old behavior */
 static const float fullscreen_bg[]         = {0.1f, 0.1f, 0.1f, 1.0f}; /* You can also use glsl colors */
 static uint32_t colors[][3]                = {
@@ -24,6 +24,7 @@ static uint32_t colors[][3]                = {
 	[SchemeSel]  = { 0xeeeeeeff, 0xaa5555ff, 0xff5577ff },
 	[SchemeUrg]  = { 0,          0,          0x770000ff },
 };
+ 
 
 /* tagging - TAGCOUNT must be no greater than 31 */
 static char *tags[] = { "1", "2", "3", "4", "5", "6", "7", "8", "9" };
@@ -33,12 +34,12 @@ static int log_level = WLR_ERROR;
 
 /* Autostart */
 static const char *const autostart[] = {
-        "systemctl", "--user", "import-environment", "WAYLAND_DISPLAY", "XDG_CURRENT_DESKTOP", NULL,
-        "dbus-update-activation-environment", "--systemd", "WAYLAND_DISPLAY", "XDG_CURRENT_DESKTOP=dwl", NULL,
-        "swaync", NULL,
-        "wlsunset", "-l", "45.9", "-L", "24.9", NULL,
-        "wpaperd", NULL,
-        NULL /* terminate */
+       "systemctl", "--user", "import-environment", "WAYLAND_DISPLAY", "XDG_CURRENT_DESKTOP", NULL,
+       "dbus-update-activation-environment", "--systemd", "WAYLAND_DISPLAY", "XDG_CURRENT_DESKTOP=dwl", NULL,
+       "swaync", NULL,
+       "wlsunset", "-l", "45.9", "-L", "24.9", NULL,
+       "wpaperd", NULL,
+       NULL /* terminate */
 };
 
 
@@ -46,10 +47,10 @@ static const char *const autostart[] = {
 static const Rule rules[] = {
 	/* app_id             title       tags mask     isfloating  isterm  noswallow  monitor */
 	/* examples: */
-	{ "Gimp",             NULL,       0,            1,          0,      0,         -1 }, /* Start on currently visible tags floating, not tiled */
-	// { "firefox_EXAMPLE",  NULL,       1 << 8,       0,          0,      0,         -1 }, /* Start on ONLY tag "9" */
-	{ "kitty",            NULL,       0,            0,          1,      1,         -1 }, /* make kitty swallow clients that are not kitty */
-	{ "alacritty",        NULL,       0,            0,          1,      0,         -1 }, /* make alacritty not swallow */
+	{ "Gimp_EXAMPLE",     NULL,       0,            1,          0,      0,         -1 }, /* Start on currently visible tags floating, not tiled */
+	{ "firefox_EXAMPLE",  NULL,       1 << 8,       0,          0,      0,         -1 }, /* Start on ONLY tag "9" */
+	{ "kitty",            NULL,       0,            0,          1,      1,         -1 }, /* make kitty swallow clients that are not foot */
+	{ "alacritty",        NULL,       0,            0,          1,      0,         -1 }, /* make alacritty no swallow */
 };
 
 /* layout(s) */
@@ -108,7 +109,7 @@ LIBINPUT_CONFIG_CLICK_METHOD_NONE
 LIBINPUT_CONFIG_CLICK_METHOD_BUTTON_AREAS
 LIBINPUT_CONFIG_CLICK_METHOD_CLICKFINGER
 */
-static const enum libinput_config_click_method click_method = LIBINPUT_CONFIG_CLICK_METHOD_BUTTON_AREAS;
+static const enum libinput_config_click_method click_method = LIBINPUT_CONFIG_CLICK_METHOD_CLICKFINGER;
 
 /* You can choose between:
 LIBINPUT_CONFIG_SEND_EVENTS_ENABLED
@@ -132,8 +133,7 @@ static const enum libinput_config_tap_button_map button_map = LIBINPUT_CONFIG_TA
 
 /* If you want to use the windows key for MODKEY, use WLR_MODIFIER_LOGO */
 #define MODKEY WLR_MODIFIER_LOGO
-
-#define NOMOD 0
+#define NOMOD  0
 
 #define TAGKEYS(KEY,SKEY,TAG) \
 	{ MODKEY,                    KEY,            view,            {.ui = 1 << TAG} }, \
@@ -146,8 +146,9 @@ static const enum libinput_config_tap_button_map button_map = LIBINPUT_CONFIG_TA
 
 /* commands */
 static const char *termcmd[] = { "kitty", NULL };
-static const char *menucmd[] = { "wmenu-run", "-s", "eeeeee", "-S", "aa5555" , NULL };
 static const char *browser[] = { "librewolf", NULL} ;
+static const char *menucmd[] = { "wmenu-run", "-s", "eeeeee", "-S", "aa5555", NULL };
+static const char *dmenucmd[] = { "wmenu", NULL };
 
 static const char *player_prev[]       = { "playerctl", "previous", NULL };
 static const char *player_next[]       = { "playerctl", "next", NULL};
@@ -157,19 +158,10 @@ static const char *lower_volume[] = { "pamixer", "-d", "5", NULL };
 static const char *raise_volume[] = { "pamixer", "-i", "5", NULL };
 static const char *mute_volume[]  = { "pamixer", "-t", NULL };
 
+
 static const Key keys[] = {
 	/* Note that Shift changes certain key codes: c -> C, 2 -> at, etc. */
 	/* modifier                  key                 function        argument */
-    /*
-	{ MODKEY,                    XKB_KEY_q,          focusto,        {.i = 0} },
-	{ MODKEY,                    XKB_KEY_w,          focusto,        {.i = 1} },
-	{ MODKEY,                    XKB_KEY_e,          focusto,        {.i = 2} },
-	{ MODKEY,                    XKB_KEY_r,          focusto,        {.i = -1} },
-	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_Q,          swapstack,      {.i = 0} },
-	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_W,          swapstack,      {.i = 1} },
-	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_E,          swapstack,      {.i = 2} },
-	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_R,          swapstack,      {.i = -1} },
-    */
     { MODKEY,                    XKB_KEY_w,          spawn,          {.v = browser} },
 	{ MODKEY,                    XKB_KEY_d,          spawn,          {.v = menucmd} },
 	{ MODKEY,                    XKB_KEY_Return,     spawn,          {.v = termcmd} },
@@ -213,7 +205,7 @@ static const Key keys[] = {
 	TAGKEYS(          XKB_KEY_7, XKB_KEY_ampersand,                  6),
 	TAGKEYS(          XKB_KEY_8, XKB_KEY_asterisk,                   7),
 	TAGKEYS(          XKB_KEY_9, XKB_KEY_parenleft,                  8),
-	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_Escape,          quit,           {0} },
+	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_Escape,      quit,          {0} },
 
 	/* Ctrl-Alt-Backspace and Ctrl-Alt-Fx used to be handled by X server */
 	{ WLR_MODIFIER_CTRL|WLR_MODIFIER_ALT,XKB_KEY_Terminate_Server, quit, {0} },
@@ -237,4 +229,6 @@ static const Button buttons[] = {
 	{ ClkTagBar,   0,      BTN_RIGHT,  toggleview,     {0} },
 	{ ClkTagBar,   MODKEY, BTN_LEFT,   tag,            {0} },
 	{ ClkTagBar,   MODKEY, BTN_RIGHT,  toggletag,      {0} },
+	{ ClkTray,     0,      BTN_LEFT,   trayactivate,   {0} },
+	{ ClkTray,     0,      BTN_RIGHT,  traymenu,       {0} },
 };
